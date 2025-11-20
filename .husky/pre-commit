@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# Copyright 2018 Sven Greb <development@svengreb.de>
+# This source code is licensed under the Apache License 2.0 found in the license file.
+
+# Git "pre-commit" hook for husky.
+# References:
+#   1. https://github.com/typicode/husky
+#   2. https://git-scm.com/docs/githooks#_pre_commit
+
+npm exec lint-staged

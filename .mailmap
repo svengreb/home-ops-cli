@@ -1,0 +1,8 @@
+# Copyright 2018 Sven Greb <development@svengreb.de>
+# This source code is licensed under the Apache License 2.0 found in the license file.
+
+# Configuration for the Git mail mapping feature to coalesce together commits by the same person in the shortlog, where their name and/or
+# email address was spelled differently or has been changed.
+# References:
+#   1. https://git-scm.com/docs/git-shortlog#_mapping_authors
+Sven Greb <development@svengreb.de>

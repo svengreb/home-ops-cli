@@ -1,0 +1,9 @@
+# Copyright 2018 Sven Greb <development@svengreb.de>
+# This source code is licensed under the Apache License 2.0 found in the license file.
+
+# Path match pattern to ignore when searching for files.
+# References:
+#   1. https://github.com/unifiedjs/unified-engine/blob/HEAD/doc/ignore.md
+
+**/node_modules/*
+local/*

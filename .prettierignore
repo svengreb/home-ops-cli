@@ -1,0 +1,12 @@
+# Copyright 2018 Sven Greb <development@svengreb.de>
+# This source code is licensed under the Apache License 2.0 found in the license file.
+
+# Path match pattern to ignore (i.e. not reformat) certain files and folders.
+# References:
+#   1. https://prettier.io/docs/en/ignore
+
+**/node_modules/*
+# Ignore cached data like compiled executables of Go module-based "main" packages.
+build/**
+# Ignore locally stored data for development and testing.
+local/**

@@ -1,0 +1,27 @@
+# Copyright 2018 Sven Greb <development@svengreb.de>
+# This source code is licensed under the Apache License 2.0 found in the license file.
+
+# Path match pattern to intentionally ignore untracked files and directories.
+# References:
+#   1. https://git-scm.com/docs/gitignore
+
+# +--------------------+
+# + JetBrains Products +
+# +--------------------+
+# +--- IntelliJ IDEA ---+
+.idea/*
+!.idea/runConfigurations
+!.idea/saved-exports
+
+# +---------+
+# + Node.js +
+# +---------+
+**/node_modules/
+
+# +---------+
+# + Project +
+# +---------+
+# Allow to store data for local development and testing.
+local/
+# Do not track cached data like compiled executables of Go module-based "main" packages.
+build/
