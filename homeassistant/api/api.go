@@ -47,7 +47,8 @@ func (e *APIError) Status() int {
 	return e.status
 }
 
-// Unwrap unwraps the API error.
+// Unwrap returns the next error in the error chain.
+// If there is no next error, Unwrap returns nil.
 func (e *APIError) Unwrap() error {
 	return e.err
 }
