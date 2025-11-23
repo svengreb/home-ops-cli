@@ -12,6 +12,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/svengreb/home-ops-cli/cmd/config"
+	cmdOrchestration "github.com/svengreb/home-ops-cli/cmd/orchestration"
 )
 
 const (
@@ -61,8 +62,15 @@ func (a *app) initCmd() error {
 	a.cmd.Version = version
 	a.cmd.SetVersionTemplate(`{{printf "%s\n" .Version}}`)
 
-	// Register all sub-commands.
-	a.cmd.AddCommand()
+	orchestrationCommand, err := cmdOrchestration.New(a.cfg, a.logger)
+	if err != nil {
+		return err
+	}
+
+	// Register all subcommands.
+	a.cmd.AddCommand(
+		orchestrationCommand,
+	)
 
 	return nil
 }

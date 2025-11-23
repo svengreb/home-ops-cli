@@ -7,8 +7,10 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/charmbracelet/log v0.4.2
 	github.com/go-resty/resty/v2 v2.16.5
+	github.com/invopop/validation v0.8.0
 	github.com/mholt/archives v0.1.0
 	github.com/spf13/cobra v1.10.1
+	go.uber.org/automaxprocs v1.6.0
 )
 
 require (
