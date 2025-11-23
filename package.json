@@ -1,6 +1,6 @@
 {
   "name": "@svengreb/home-ops-cli",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "CLI for HomeOps",
   "homepage": "https://github.com/svengreb/home-ops-cli",
   "repository": {
