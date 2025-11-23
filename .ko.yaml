@@ -1,0 +1,54 @@
+# Copyright 2018 Sven Greb <development@svengreb.de>
+# This source code is licensed under the Apache License 2.0 found in the license file.
+
+# The configuration file for ko.
+# References:
+#   1. https://ko.build/configuration
+
+baseImageOverrides:
+  # Use Debian as base container image instead of `cgr.dev/chainguard/static`.
+  # References:
+  #   1. https://ko.build/configuration/#overriding-base-images
+  "github.com/svengreb/home-ops-cli": gcr.io/distroless/static-debian12:nonroot
+
+# Define all build targets.
+builds:
+  - id: homeopsctl
+    env:
+      # Explicitly disable CGO.
+      - CGO_ENABLED=0
+    # Define additional linker flags.
+    ldflags:
+      # Disable DWARF generation.
+      - -w
+      # Set the value of the command version variable.
+      # The `HOME_OPS_CLI_VERSION` environment variable must be set
+      - -X github.com/svengreb/home-ops-cli/cmd.version={{ .Env.HOME_OPS_CLI_VERSION }}
+
+# Define the default Go build flags for all ko build IDs.
+# References:
+#   1. https://ko.build/configuration/#setting-build-flags-and-ldflags
+#   2. https://pkg.go.dev/cmd/go
+defaultFlags:
+  # Remove all file system paths from the resulting executable. Instead of absolute file system paths, the recorded file names will begin
+  # either with a module path@version (when using modules), or a plain import path (when using the standard library, or GOPATH).
+  - -trimpath
+  # Always print the names of packages as they are compiled.
+  - -v
+
+# Define the default flags for all ko build IDs that are passed to the linker.
+# References:
+#   1. https://ko.build/configuration/#setting-build-flags-and-ldflags
+#   2. https://pkg.go.dev/cmd/link
+#   3. https://pkg.go.dev/cmd/go
+#   4. https://www.digitalocean.com/community/tutorials/using-ldflags-to-set-version-information-for-go-applications
+#   5. https://en.wikipedia.org/wiki/Linker_(computing)
+defaultLdflags:
+  # Disable the symbol table.
+  - -s
+
+# Define the default platforms that ko builds all IDs for.
+# References:
+#   1. https://ko.build/configuration/#setting-default-platforms
+defaultPlatforms:
+  - linux/amd64

@@ -1,0 +1,171 @@
+# Copyright 2018 Sven Greb <development@svengreb.de>
+# This source code is licensed under the Apache License 2.0 found in the license file.
+
+# GitHub Action workflow to publish the container image for the HomeOps CLI application.
+# References:
+#   1. https://docs.github.com/en/actions
+#   2. https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+#   3. https://github.com/features/actions
+
+name: publish-image
+
+# Define the triggers to execute this workflow.
+# References:
+#   1. https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#on
+on:
+  # Run this workflow when pushing a commit to the `main` branch or a version tag.
+  # References:
+  #   1. https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#push
+  push:
+    branches:
+      - main
+    tags:
+      - v*
+
+# Set the permissions granted to the GITHUB_TOKEN.
+# References:
+#   1. https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#permissions
+#   2. https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository
+#   2.1. https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#configuring-the-default-github_token-permissions
+permissions:
+  # Only grant read-only access to the repository content.
+  # References:
+  #   1. https://docs.github.com/en/rest/authentication/permissions-required-for-github-apps?apiVersion=2022-11-28#repository-permissions-for-contents
+  contents: read
+  # Allow to fetch an OpenID Connect (OIDC) token.
+  # References:
+  #   1. https://docs.github.com/en/actions/concepts/security/openid-connect#updating-your-actions-for-oidc
+  #   2. https://docs.github.com/en/actions/reference/security/secure-use#using-openid-connect-to-access-cloud-resources
+  id-token: write
+  # Grant access to push images to the container registry.
+  # References:
+  #   1. https://docs.github.com/en/packages/learn-github-packages/about-permissions-for-github-packages#about-scopes-and-permissions-for-package-registries
+  packages: write
+
+# Define environment variables that are available to the steps of all jobs in this workflow.
+# References:
+#   1. https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#env
+env:
+  # +----+
+  # + ko +
+  # +----+
+  # Set the container repository where to push images built with ko.
+  # The GitHub repository owner and name is injected from the `github` context.
+  # References:
+  #   1. https://ko.build/configuration/#environment-variables-advanced
+  #   2. https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#github-context
+  KO_DOCKER_REPO: ghcr.io/${{ github.repository }}
+
+# Define jobs for this workflow.
+# This workflow follow best practices of…
+#   - pinning (third-party) actions to a full-length commit SHA
+#     ↳ Mitigates the risk of a bad actor adding a backdoor to the action's repository, as they would need to generate an SHA-1 collision
+#       for a valid Git object payload.
+#   - pinning (third-party) actions to a tag only for trusted action creators.
+#     ↳ Although pinning to a commit SHA is the most secure option, specifying a tag is more convenient and is widely used when trusting the
+#       action's creators. The "Verified creator" badge on GitHub Marketplace is a useful signal, as it indicates that the action was
+#       written by a team whose identity has been verified by GitHub.
+# References:
+#   1. https://docs.github.com/en/actions/reference/security/secure-use#using-third-party-actions
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Print information available through default GitHub environment variables and contexts.
+      # References:
+      #   1. https://docs.github.com/en/actions/reference/workflows-and-actions/variables#default-environment-variables
+      - name: Print metadata and context information
+        run: |
+          echo "Git SHA: $GITHUB_SHA"
+          echo "Git Ref: $GITHUB_REF"
+          echo "Workflow Actor: $GITHUB_ACTOR"
+
+      - name: Checkout Repository
+        # The official (verified) GitHub Action to check out a Git repository at a particular version.
+        # References:
+        #   1. https://github.com/marketplace/actions/checkout
+        #   2. https://github.com/actions/checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        # The official (verified) GitHub Action to set up Go.
+        # References:
+        #   1. https://github.com/marketplace/actions/setup-go-environment
+        #   2. https://github.com/actions/setup-go
+        uses: actions/setup-go@v6
+        with:
+          go-version: "1.24"
+
+      - name: Install ko
+        # The official GitHub Action for ko.
+        # The full SHA-1 commit hash resolves to version 0.9.
+        # References:
+        #   1. https://github.com/marketplace/actions/setup-ko
+        #   2. https://github.com/ko-build/setup-ko
+        uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d # v0.9
+        with:
+          # Pin to a specific version of ko.
+          # References:
+          #   1. https://github.com/ko-build/ko/releases/tag/v0.18.0
+          version: v0.18.0
+
+      - name: GHCR Authentication
+        # The official (verified) GitHub Action to log in against a Docker registry.
+        # References:
+        #   1. https://github.com/marketplace/actions/docker-login
+        #   2. https://github.com/docker/login-action
+        uses: docker/login-action@v3
+        with:
+          # Use the GitHub token which has permissions to access the GHCR registry.
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+
+      # Define build metadata like environment variables and detect whether this is a tagged release and write metadata.
+      # References:
+      #   1. https://docs.github.com/en/actions/reference/workflows-and-actions/variables#default-environment-variables
+      #   2. https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/pass-job-outputs
+      #   3. https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-commands#setting-an-environment-variable
+      - name: Determine Build Metadata
+        id: meta
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "release_tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+            echo "is_release=true" >> "$GITHUB_OUTPUT"
+            echo "HOME_OPS_CLI_VERSION=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+          else
+            echo "release_tag=" >> "$GITHUB_OUTPUT"
+            echo "is_release=false" >> "$GITHUB_OUTPUT"
+            echo "HOME_OPS_CLI_VERSION=${GITHUB_SHA}" >> "$GITHUB_ENV"
+          fi
+
+      # Build and publish the container image for non-tag pushes (`main` branch).
+      - name: Build & Publish (non-release)
+        if: steps.meta.outputs.is_release == 'false'
+        # Build the container image with ko using the following options:
+        #   - --bare
+        #     ↳ Omit the MD5 checksum that is, by default, appended to the image name (e.g. "registry.example.com/repo/app-<MD5>") and
+        #       application name and only use the value of the `KO_DOCKER_REPO` environment variable.
+        #   - --tags
+        #     ↳ Which tags to use for the produced image instead of the default `latest` tag.
+        # References:
+        #   1. https://ko.build/configuration/#naming-images
+        #   2. https://ko.build/reference/ko_build
+        run: |
+          ko build --bare --tags=${GITHUB_SHA} .
+
+      # Build and publish the container image for tagged releases.
+      - name: Build & Publish (release)
+        if: steps.meta.outputs.is_release == 'true'
+        # Build the container image with ko using the following options:
+        #   - --bare
+        #     ↳ Omit the MD5 checksum that is, by default, appended to the image name (e.g. "registry.example.com/repo/app-<MD5>") and
+        #       application name and only use the value of the `KO_DOCKER_REPO` environment variable.
+        #   - --tags
+        #     ↳ Which tags to use for the produced image instead of the default `latest` tag.
+        # References:
+        #   1. https://ko.build/configuration/#naming-images
+        #   2. https://ko.build/reference/ko_build
+        run: |
+          ko build --bare --tags=${{ steps.meta.outputs.release_tag }} .
